@@ -18,30 +18,30 @@ param (
 
 #region User variables - change me
 $JsonBackupFolder = "F:\NowDeploy\json" # Every time this script is called, it copies the passed json file to this directory. Comment out to not backup json files
-$CMSiteCode = "ABC" # Your site code
-$CMSiteServer = "cm.contoso.com" # Your site server FQDN
-$DistributionPoints = @("dp1.contoso.com","dp2.contoso.com","dp2.contoso.com") # An array of distribution points to distribute new content to. Value can be "All" to use all DPs in site
+$CMSiteCode = "ACC" # Your site code
+$CMSiteServer = "SCCM.acc.local" # Your site server FQDN
+$DistributionPoints = "All" # An array of distribution points to distribute new content to
 
 $SupersedingAppDeployToLastAppCollections = $true # Deploy new applications to the same collections as of the applications it superseded
-$SupersedingAppDeployToCollectionNames = @("CollectionA","CollectionB") # A string or array of collection names to deploy applications that supersede other applications to
+$SupersedingAppDeployToCollectionNames = "CLIENT01" # A string or array of collection names to deploy applications that supersede other applications to
 $SupersedingAppDeployPurpose = "Available" # Can be Available or Required
 $SupersedingAppOverrideServiceWindow = $false # Can be true or false
 $SupersedingAppRebootOutsideServiceWindow = $false # Can be true or false
 $SupersedingAppUserExperience  = "DisplayAll" # Can be DisplayAll, DisplaySoftwareCenterOnly or HideAll
 
-$NewAppDeployToCollectionNames = @("CollectionA","CollectionB") # A string or array of collection names to deploy new applications to. Comment out to not deploy new applications
+$NewAppDeployToCollectionNames = "CLIENT01" # A string or array of collection names to deploy new applications to. Comment out to not deploy new applications
 $NewAppDeployPurpose = "Available" # Can be Available or Required
 $NewAppOverrideServiceWindow = $false # Can be true or false
 $NewAppRebootOutsideServiceWindow = $false # Can be true or false
 $NewAppUserExperience  = "DisplayAll" # Can be DisplayAll, DisplaySoftwareCenterOnly or HideAll
 
 $MailArgs = @{
-    From       = 'example@domain.com'
-    To         = 'example@domain.com'
-    SmtpServer = 'smtp@domain.com'
+    From       = 'NowDeploy@cookadam.co.uk'
+    To         = 'me@cookadam.co.uk'
+    SmtpServer = 'smtp.office365.com'
     Port       = 587
     UseSsl     = $true
-    Credential = (Import-Clixml -LiteralPath "$home\Documents\Keys\pscredential.xml")
+    Credential = (Import-Clixml -LiteralPath "$home\Documents\Keys\o365.xml")
 }
 #endregion
 
@@ -287,6 +287,8 @@ if ($SupersedingAppDeployToLastAppCollections -eq $true -Or $null -ne $Supersedi
         ForEach ($col in $SupersedingAppDeployToCollectionNames) {
             [System.Collections.Generic.List[String]]$Collections.Add($col)
         }
+
+        $Collections = $Collections | Sort-Object -Unique
 
         $Message = "Collections to deploy app to: {0}" -f ([String]::Join(", ", $Collections))
         Write-Log -Message $Message -Level 2
