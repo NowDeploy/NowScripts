@@ -127,13 +127,9 @@ if ($null -ne $Jsonfile) {
         try {
             Copy-Item $JsonFile -Destination $JsonBackupFolder -Force -ErrorAction Stop
         }
-        catch [System.IO.IOException] {
-            Write-Warning $error[0].exception.message
-        }
         catch {
             $Message = "Failed to back up json file ({0})" -f $error[0].Exception.Message
             Write-Log -Message $Message -Level 0
-            throw $Message
         }
     }
 } else {
