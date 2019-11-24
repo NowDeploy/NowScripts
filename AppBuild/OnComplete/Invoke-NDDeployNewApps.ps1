@@ -450,7 +450,6 @@ if ($Failures.count -gt 0) {
 
 Set-Location $OriginalPath
 
-Write-Output "Finished"
 Write-Log -Message "Finished" -Level 0
 
 Start-Sleep -Seconds 60
