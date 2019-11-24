@@ -8,7 +8,6 @@
     To do:
         - Better notification control
         - Support same DeployPurpose as per superseded app, perhaps inc other properties too
-        - Support "All" value for $DistributionPoints to mean grab all DPs using Get-CMDistributionPoint and use those
 #>
 [CmdletBinding()]
 param (
@@ -21,7 +20,7 @@ param (
 $JsonBackupFolder = "F:\NowDeploy\json" # Every time this script is called, it copies the passed json file to this directory. Comment out to not backup json files
 $CMSiteCode = "ABC" # Your site code
 $CMSiteServer = "cm.contoso.com" # Your site server FQDN
-$DistributionPoints = @("dp1.contoso.com","dp2.contoso.com","dp2.contoso.com") # An array of distribution points to distribute new content to
+$DistributionPoints = @("dp1.contoso.com","dp2.contoso.com","dp2.contoso.com") # An array of distribution points to distribute new content to. Value can be "All" to use all DPs in site
 
 $SupersedingAppDeployToLastAppCollections = $true # Deploy new applications to the same collections as of the applications it superseded
 $SupersedingAppDeployToCollectionNames = @("CollectionA","CollectionB") # A string or array of collection names to deploy applications that supersede other applications to
@@ -114,29 +113,6 @@ if ($null -eq $DistributionPoints) {
 }
 #endregion
 
-#region Log configuration values
-[System.Collections.Generic.List[String]]$Messages = @()
-switch ($true) {
-    $true { # Always log
-        $Messages.Add(("Script is configured to connect to site: {0} ({1})" -f $CMSiteServer, $CMSiteCode))
-        $Messages.Add(("Script is configured to distribute content to DP(s): {0}" -f [String]::Join(", ", $DistributionPoints)))
-    }
-    ([String]::IsNullOrEmpty($JsonBackupFolder) -eq $false) {
-        $Messages.Add("Script is configured to back up json files to: {0}" -f $JsonBackupFolder)
-    }
-    $SupersedingAppDeployToLastAppCollections {
-        $Messages.Add("For superseding apps, script is configured to deploy to last app's collections")
-    }
-    ($null -ne $SupersedingAppDeployToCollectionNames) {
-        $Messages.Add(("For superseding apps, script is configured to always deploy to collection(s): {0}" -f ([String]::Join(", ", $SupersedingAppDeployToCollectionNames))))
-    }
-    ($null -ne $NewAppDeployToCollectionNames) {
-        $Messages.Add(("For new apps, script is configured to always deploy to collection(s): {0}" -f ([String]::Join(", ", $SupersedingAppDeployToCollectionNames))))
-    }
-}
-Write-Log -Message $Messages -Level 0
-#endregion
-
 #region Get json content
 if ($null -ne $Jsonfile) {
     try {
@@ -189,6 +165,42 @@ if($null -eq (Get-PSDrive -Name $CMSiteCode -PSProvider CMSite -ErrorAction Sile
     }
 }
 Set-Location ("{0}:" -f $CMSiteCode)
+#endregion
+
+#region Get all DPs if requested
+if ($DistributionPoints -eq "All") {
+    try {
+        $DistributionPoints = Get-CMDistributionPoint -ErrorAction Stop | ForEach-Object { $_.NetworkOSPath -replace "\\" } 
+    }
+    catch {
+        $Message = "Failed to get all DPs ({0})" -f $error[0].Exception.Message
+        Write-Log -Message $Message -Level 0
+        throw $Message
+    }
+}
+#endregion
+
+#region Log configuration values
+[System.Collections.Generic.List[String]]$Messages = @()
+switch ($true) {
+    $true { # Always log
+        $Messages.Add(("Script is configured to connect to site: {0} ({1})" -f $CMSiteServer, $CMSiteCode))
+        $Messages.Add(("Script is configured to distribute content to DP(s): {0}" -f [String]::Join(", ", $DistributionPoints)))
+    }
+    ([String]::IsNullOrEmpty($JsonBackupFolder) -eq $false) {
+        $Messages.Add("Script is configured to back up json files to: {0}" -f $JsonBackupFolder)
+    }
+    $SupersedingAppDeployToLastAppCollections {
+        $Messages.Add("For superseding apps, script is configured to deploy to last app's collections")
+    }
+    ($null -ne $SupersedingAppDeployToCollectionNames) {
+        $Messages.Add(("For superseding apps, script is configured to always deploy to collection(s): {0}" -f ([String]::Join(", ", $SupersedingAppDeployToCollectionNames))))
+    }
+    ($null -ne $NewAppDeployToCollectionNames) {
+        $Messages.Add(("For new apps, script is configured to always deploy to collection(s): {0}" -f ([String]::Join(", ", $SupersedingAppDeployToCollectionNames))))
+    }
+}
+Write-Log -Message $Messages -Level 0
 #endregion
 
 #region Superseding applications
